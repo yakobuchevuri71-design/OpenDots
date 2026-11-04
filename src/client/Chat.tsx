@@ -32,6 +32,7 @@ import {
   type ComputerToolRenderProps,
 } from './ComputerToolCard';
 import { ChatTranscript, isInternalVoiceReceipt } from './ChatTranscript';
+import { ChatAttachments } from './ChatAttachments';
 import type { CallReceipt, Conversation, Dot } from '../shared/types';
 import { Mascot } from './Mascot';
 import { useVoice } from './useVoice';
@@ -437,6 +438,11 @@ export function Chat({
           </div>
         )}
         <div className="chat-compose-row">
+          <ChatAttachments
+            threadId={thread.id}
+            disabled={!loaded || !contextReady}
+            onError={setError}
+          />
           <button
             type="button"
             className="icon-button"

@@ -1,5 +1,6 @@
 import { setupInputSchema } from './setup-telemetry.js';
 import { pageRoutes } from './page-routes.js';
+import { platformRoutes } from './platform-routes.js';
 import { Hono } from 'hono';
 import { z } from 'zod';
 import { Platform } from './platform.js';
@@ -23,11 +24,13 @@ const dotSchema = z
     skillDeliveryEnabled: z.boolean().optional(),
     spaceIds: z.array(z.string().min(1)).min(1).max(100).optional(),
     spaceId: z.string().min(1).optional(),
+    modelId: z.string().trim().max(120).nullable().optional(),
   })
   .strict();
 export function workspaceRoutes(platform: Platform, voice: VoiceService) {
   const app = new Hono();
   app.route('/', pageRoutes(platform));
+  app.route('/', platformRoutes(platform));
   app.post('/setup-telemetry', async (c) => {
     const parsed = setupInputSchema.safeParse(
       await c.req.json().catch(() => null),
@@ -111,6 +114,7 @@ export function workspaceRoutes(platform: Platform, voice: VoiceService) {
         data.data.skillDeliveryEnabled,
         data.data.appsAllowed,
         data.data.composioToolkits,
+        data.data.modelId ?? null,
       ),
       201,
     );

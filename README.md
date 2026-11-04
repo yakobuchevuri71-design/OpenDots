@@ -88,6 +88,18 @@ Ask a Dot to show a draft before saving it. A CopilotKit human-in-the-loop card 
 
 Give a Dot tools from any MCP server, such as email, calendar, GitHub, or your own services. Read-only tools run on their own. Any other tool pauses for an **Approve & run** card in chat, and only your approval runs it. You can turn each tool on or off per Dot. See [Connections](docs/CONNECTIONS.md).
 
+### Documents, models, and projects
+
+Attach files to a conversation from the composer. Text, Markdown, code, JSON, and CSV are decoded and offered to the Dot as reference material; other files are stored and downloadable. Attachments stay in the deployment database and are removed with their conversation.
+
+Choose a model per Dot in its settings, or keep the deployment default. The catalog comes from the server and can include any OpenAI-compatible model the deployment is configured for.
+
+Ask a Dot to build a small website or app. Each project keeps its files, renders a sandboxed preview in the Projects view, and downloads as a ZIP. The agent can create and update projects through its own tools.
+
+### Dashboard
+
+The Dashboard reads only this deployment's database. It shows usage totals, task statistics, average/median/p95 turn latency, a success rate, the busiest hour, per-Dot activity, a 14-day activity chart, and a recent activity feed. No prompts, tool arguments, or results are recorded, and nothing is sent off the deployment.
+
 ### Connected apps
 
 Dots can use [Composio](https://composio.dev) to work with the owner's email, calendar, and other connected apps. Add `COMPOSIO_API_KEY`, restart OpenDots, then enable Connected apps in both the global settings and the Dot's settings. Adding the API key alone does not grant access.
@@ -209,7 +221,11 @@ CopilotKit SDK telemetry collects usage metadata separately from conversation pe
 | Background work            | Scheduled server-side turns in their original conversation, with pause and retry controls                                               |
 | Browser                    | Separate read-only public-page service with page capture and navigation limits                                                          |
 | Dot computers              | Per-Dot browser profiles, files, shell, takeover, permissions, and action records through OpenBot                                       |
-| Connections                | Per-Dot MCP servers, Composio connected apps, per-tool access, and owner approval for MCP write actions                                 |
+| Connections                | Per-Dot MCP servers with common presets, Composio connected apps, per-tool access, and owner approval for MCP write actions             |
+| Documents                  | Per-conversation attachments the Dot can read as reference material; text-like files are decoded, other files are stored for download   |
+| Models                     | Per-Dot model selection from the deployment catalog, with a deployment default                                                          |
+| Projects                   | Web and app projects with file editing, sandboxed preview, and ZIP download                                                             |
+| Dashboard                  | Local usage, task statistics, performance percentiles, and per-Dot activity with interactive charts                                     |
 | Appearance                 | System, light, and dark themes; dark colors are derived at build time from the light styles                                             |
 | Memory                     | User-managed preferences that permitted Dots can use                                                                                    |
 | Automatic Learning         | Per-Dot Learning containers, conversation evidence routing, and published-skill delivery; see [setup](docs/SETUP.md#automatic-learning) |
@@ -221,7 +237,7 @@ Local checks cover setup, persistence, permissions, SDK failure handling, and br
 
 Automatic Learning routing and skill delivery are configured locally. Cloud schedules, eligible-thread counts, and published-skill delivery still need connected-service verification. Skills require review and publication in Intelligence; existing conversations without a container are not enrolled retroactively.
 
-This is a single-owner starting point. Shared editing, invitations, file uploads, and interactive page embeds are not included. Schedules are recurring instructions, not a complete goal or event-trigger system. Specialist Dots have separate roles and conversations; multi-Dot group conversations and automatic delegation are further work.
+This is a single-owner starting point. Shared editing, invitations, and interactive page embeds are not included. Schedules are recurring instructions, not a complete goal or event-trigger system. Specialist Dots have separate roles and conversations; multi-Dot group conversations and automatic delegation are further work.
 
 ### Extending the template
 

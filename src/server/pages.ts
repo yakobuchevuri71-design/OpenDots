@@ -46,6 +46,7 @@ export class Pages {
   constructor(
     private db: DatabaseSync,
     private spaceExists: (id: string) => boolean,
+    private onCreated?: (page: Page) => void,
   ) {
     db.exec(
       'CREATE TABLE IF NOT EXISTS page_reviews(threadId TEXT NOT NULL, toolCallId TEXT NOT NULL, pageId TEXT NOT NULL, spaceId TEXT NOT NULL, draft TEXT, PRIMARY KEY(threadId,toolCallId))',
@@ -132,7 +133,9 @@ export class Pages {
         now,
         sourceThreadId,
       );
-    return this.get(spaceId, id);
+    const page = this.get(spaceId, id);
+    this.onCreated?.(page);
+    return page;
   }
   reviewReceipt(
     threadId: string,

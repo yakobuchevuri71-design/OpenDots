@@ -6,6 +6,7 @@ import { CopilotKitProvider } from '@copilotkit/react-core/v2';
 import {
   ArrowUp,
   ArrowUpRight,
+  BarChart3,
   BookOpen,
   Clock3,
   Code2,
@@ -47,6 +48,8 @@ import { ResultPane } from './ResultPane';
 import { TaskRow } from './TaskPresentation';
 import { TaskActions } from './TaskActions';
 import { WorkspaceDialog, type Dialog } from './WorkspaceDialog';
+import { Dashboard } from './Dashboard';
+import { Projects } from './Projects';
 import { submitComposerOnEnter } from './chat-composer';
 
 function describeFailure(error: unknown, fallback: string) {
@@ -62,9 +65,9 @@ export function App() {
   const [workspace, setWorkspace] = useState<WorkspaceState>();
   const [selectedDot, setSelectedDot] = useState('');
   const [selectedThread, setSelectedThread] = useState<string>();
-  const [view, rawSetView] = useState<'chat' | 'tasks' | 'memories' | 'space'>(
-    'chat',
-  );
+  const [view, rawSetView] = useState<
+    'chat' | 'tasks' | 'memories' | 'space' | 'dashboard' | 'projects'
+  >('chat');
   const dirtyPage = useRef(false);
   const [spaceId, setSpaceId] = useState('');
   const [pageId, setPageId] = useState<string>();
@@ -341,6 +344,24 @@ export function App() {
           <Clock3 size={18} />
         </button>
         <button
+          aria-label="Open dashboard"
+          onClick={() => {
+            setView('dashboard');
+            setMobile(false);
+          }}
+        >
+          <BarChart3 size={18} />
+        </button>
+        <button
+          aria-label="Open projects"
+          onClick={() => {
+            setView('projects');
+            setMobile(false);
+          }}
+        >
+          <Code2 size={18} />
+        </button>
+        <button
           className="rail-settings"
           aria-label="Open settings"
           onClick={() => setDialog({ type: 'settings' })}
@@ -482,6 +503,26 @@ export function App() {
             <Clock3 size={17} />
             <span>Scheduled & activity</span>
             {state.tasks.length > 0 && <small>{state.tasks.length}</small>}
+          </button>
+          <button
+            className={`nav-item ${view === 'dashboard' ? 'active' : ''}`}
+            onClick={() => {
+              setView('dashboard');
+              setMobile(false);
+            }}
+          >
+            <BarChart3 size={17} />
+            <span>Dashboard</span>
+          </button>
+          <button
+            className={`nav-item ${view === 'projects' ? 'active' : ''}`}
+            onClick={() => {
+              setView('projects');
+              setMobile(false);
+            }}
+          >
+            <Code2 size={17} />
+            <span>Projects</span>
           </button>
           <button
             className={`nav-item ${view === 'memories' ? 'active' : ''}`}
@@ -767,6 +808,34 @@ export function App() {
               />
             )}
           </div>
+        ) : view === 'dashboard' ? (
+          <main className="main-content">
+            <div className="page-heading">
+              <div>
+                <span className="eyebrow">YOUR WORKSPACE</span>
+                <h1>How your dots are doing.</h1>
+                <p>
+                  Usage, activity and performance for this deployment, recorded
+                  locally.
+                </p>
+              </div>
+            </div>
+            <Dashboard dots={workspace.dots} />
+          </main>
+        ) : view === 'projects' ? (
+          <main className="main-content">
+            <div className="page-heading">
+              <div>
+                <span className="eyebrow">BUILT BY YOUR DOTS</span>
+                <h1>Websites and apps.</h1>
+                <p>
+                  Preview generated projects in a sandbox, then download the
+                  source as a ZIP.
+                </p>
+              </div>
+            </div>
+            <Projects dots={workspace.dots} onError={setError} />
+          </main>
         ) : (
           <main className="main-content">
             <div className="page-heading">

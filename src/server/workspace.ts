@@ -1,6 +1,9 @@
+import { AnalyticsStore } from './analytics.js';
 import { ComputerStore } from './computer-store.js';
 import { ConnectionStore } from './connection-store.js';
 import { Pages } from './pages.js';
+import { Attachments } from './attachments.js';
+import { Projects } from './projects.js';
 import { DatabaseSync } from 'node:sqlite';
 import { mkdirSync } from 'node:fs';
 import { dirname } from 'node:path';
@@ -12,6 +15,9 @@ export class WorkspaceStore {
   readonly pages: Pages;
   readonly computers: ComputerStore;
   readonly connections: ConnectionStore;
+  readonly analytics: AnalyticsStore;
+  readonly attachments: Attachments;
+  readonly projects: Projects;
   constructor(
     path: string,
     readonly ownerId: string,
@@ -32,6 +38,7 @@ export class WorkspaceStore {
       ['dots', 'composioToolkits', "TEXT NOT NULL DEFAULT '[]'"],
       ['dots', 'composioSessionId', 'TEXT'],
       ['dots', 'composioPolicyHash', 'TEXT'],
+      ['dots', 'modelId', 'TEXT'],
       ['thread_bindings', 'learningContainerId', 'TEXT'],
     ]) {
       if (
@@ -57,8 +64,18 @@ export class WorkspaceStore {
     }
     this.computers = new ComputerStore(this.db);
     this.connections = new ConnectionStore(this.db);
-    this.pages = new Pages(this.db, (id) =>
-      this.spaces().some((space) => space.id === id),
+    this.analytics = new AnalyticsStore(this.db);
+    this.attachments = new Attachments(this.db);
+    this.projects = new Projects(this.db);
+    this.pages = new Pages(
+      this.db,
+      (id) => this.spaces().some((space) => space.id === id),
+      (page) =>
+        this.analytics.record({
+          kind: 'page_created',
+          refId: page.id,
+          meta: { spaceId: page.spaceId },
+        }),
     );
     if (
       !this.db
@@ -118,6 +135,7 @@ export class WorkspaceStore {
         appsAllowed: !!row.appsAllowed,
         composioToolkits: JSON.parse(String(row.composioToolkits ?? '[]')),
         skillDeliveryEnabled: !!row.skillDeliveryEnabled,
+        modelId: row.modelId == null ? null : String(row.modelId),
       })) as unknown as Dot[];
   }
   dot(id: string) {
@@ -134,6 +152,7 @@ export class WorkspaceStore {
     skillDeliveryEnabled = false,
     appsAllowed = false,
     composioToolkits: string[] = [],
+    modelId: string | null = null,
   ): Dot {
     this.validateSpaceAccess(spaceId, spaceIds);
     validateLearningSettings(learningContainerId, skillDeliveryEnabled);
@@ -151,13 +170,14 @@ export class WorkspaceStore {
       composioPolicyHash: null,
       learningContainerId,
       skillDeliveryEnabled,
+      modelId,
       createdAt: Date.now(),
     };
     this.db.exec('BEGIN');
     try {
       this.db
         .prepare(
-          'INSERT INTO dots (id, spaceId, name, instructions, researchAllowed, memoryAllowed, createdAt, learningContainerId, skillDeliveryEnabled, appsAllowed, composioToolkits) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+          'INSERT INTO dots (id, spaceId, name, instructions, researchAllowed, memoryAllowed, createdAt, learningContainerId, skillDeliveryEnabled, appsAllowed, composioToolkits, modelId) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
         )
         .run(
           dot.id,
@@ -171,6 +191,7 @@ export class WorkspaceStore {
           +skillDeliveryEnabled,
           +appsAllowed,
           JSON.stringify(dot.composioToolkits),
+          modelId,
         );
       for (const id of dot.spaceIds)
         this.db.prepare('INSERT INTO dot_spaces VALUES (?, ?)').run(dot.id, id);
@@ -208,6 +229,7 @@ export class WorkspaceStore {
       spaceIds?: string[];
       learningContainerId?: string | null;
       skillDeliveryEnabled?: boolean;
+      modelId?: string | null;
     },
   ): Dot {
     const current = this.dot(id);
@@ -221,12 +243,14 @@ export class WorkspaceStore {
         : patch.learningContainerId;
     const skillDeliveryEnabled =
       patch.skillDeliveryEnabled ?? current.skillDeliveryEnabled ?? false;
+    const modelId =
+      patch.modelId === undefined ? (current.modelId ?? null) : patch.modelId;
     validateLearningSettings(learningContainerId, skillDeliveryEnabled);
     this.db.exec('BEGIN');
     try {
       this.db
         .prepare(
-          'UPDATE dots SET name=?, instructions=?, researchAllowed=?, memoryAllowed=?, learningContainerId=?, skillDeliveryEnabled=?, appsAllowed=?, composioToolkits=? WHERE id=?',
+          'UPDATE dots SET name=?, instructions=?, researchAllowed=?, memoryAllowed=?, learningContainerId=?, skillDeliveryEnabled=?, appsAllowed=?, composioToolkits=?, modelId=? WHERE id=?',
         )
         .run(
           patch.name,
@@ -237,6 +261,7 @@ export class WorkspaceStore {
           +skillDeliveryEnabled,
           +patch.appsAllowed,
           JSON.stringify([...new Set(patch.composioToolkits)].sort()),
+          modelId,
           id,
         );
       this.db
@@ -289,6 +314,12 @@ export class WorkspaceStore {
         value.createdAt,
         value.learningContainerId ?? null,
       );
+    this.analytics.record({
+      kind: 'conversation_created',
+      dotId,
+      threadId: id,
+      at: value.createdAt,
+    });
     return value;
   }
   requireThread(id: string, dotId?: string): Conversation {
@@ -333,6 +364,12 @@ export class WorkspaceStore {
         'INSERT INTO calls(id, threadId, startedAt, endedAt, status, transcript, error) VALUES (?, ?, ?, NULL, ?, ?, NULL)',
       )
       .run(call.id, threadId, call.startedAt, call.status, '');
+    this.analytics.record({
+      kind: 'call',
+      threadId,
+      refId: call.id,
+      at: call.startedAt,
+    });
     return call;
   }
   call(id: string): CallReceipt {
