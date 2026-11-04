@@ -92,6 +92,8 @@ export interface Dot {
   createdAt: number;
   learningContainerId?: string | null;
   skillDeliveryEnabled?: boolean;
+  /** Model override for this Dot; null uses the deployment default. */
+  modelId?: string | null;
 }
 export interface Conversation {
   id: string;
@@ -127,4 +129,116 @@ export interface WorkspaceState {
   conversations: Conversation[];
   setup: SetupStatus;
   calls: CallReceipt[];
+}
+
+export type AnalyticsEventKind =
+  | 'conversation_created'
+  | 'agent_run'
+  | 'page_created'
+  | 'task_run'
+  | 'call'
+  | 'project_created'
+  | 'attachment_added';
+
+export interface AnalyticsEvent {
+  id: number;
+  at: number;
+  kind: AnalyticsEventKind;
+  dotId: string | null;
+  threadId: string | null;
+  refId: string | null;
+  durationMs: number | null;
+  ok: boolean;
+  meta: Record<string, unknown>;
+}
+
+export interface DailyActivity {
+  date: string;
+  agentRuns: number;
+  pages: number;
+  conversations: number;
+  calls: number;
+  taskRuns: number;
+  projects: number;
+}
+
+export interface AgentActivity {
+  dotId: string;
+  name: string;
+  runs: number;
+  successes: number;
+  failures: number;
+  avgDurationMs: number;
+  lastAt: number | null;
+}
+
+export interface AnalyticsSummary {
+  generatedAt: number;
+  usage: {
+    conversations: number;
+    agentRuns: number;
+    pages: number;
+    calls: number;
+    taskRuns: number;
+    projects: number;
+    attachments: number;
+  };
+  taskStats: Record<Status, number> & { total: number };
+  performance: {
+    avgAgentRunMs: number;
+    p50AgentRunMs: number;
+    p95AgentRunMs: number;
+    successRate: number;
+    busiestHour: number | null;
+  };
+  agentActivity: AgentActivity[];
+  daily: DailyActivity[];
+  recent: AnalyticsEvent[];
+}
+
+export interface ModelOption {
+  id: string;
+  label: string;
+  description: string;
+  provider: string;
+}
+
+export interface Attachment {
+  id: string;
+  threadId: string;
+  name: string;
+  kind: 'text' | 'markdown' | 'code' | 'json' | 'csv' | 'binary';
+  mimeType: string;
+  size: number;
+  createdAt: number;
+  text: string | null;
+}
+
+export interface ProjectFile {
+  path: string;
+  content: string;
+}
+
+export interface Project {
+  id: string;
+  dotId: string;
+  name: string;
+  description: string;
+  template: string;
+  status: 'draft' | 'ready';
+  files: ProjectFile[];
+  createdAt: number;
+  updatedAt: number;
+}
+
+export interface ProjectSummary {
+  id: string;
+  dotId: string;
+  name: string;
+  description: string;
+  template: string;
+  status: 'draft' | 'ready';
+  fileCount: number;
+  createdAt: number;
+  updatedAt: number;
 }

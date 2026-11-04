@@ -1,6 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
 import { X } from 'lucide-react';
-import type { Dot, Memory, State, WorkspaceState } from '../shared/types';
+import type {
+  Dot,
+  Memory,
+  ModelOption,
+  State,
+  WorkspaceState,
+} from '../shared/types';
+import { api } from './api';
 import { ConnectionsSection } from './ConnectionsSection';
 import {
   setThemePreference,
@@ -69,6 +76,25 @@ export function WorkspaceDialog({
   const [skillDelivery, setSkillDelivery] = useState(
     dialog.type === 'dot' ? (dialog.dot?.skillDeliveryEnabled ?? false) : false,
   );
+  const [modelId, setModelId] = useState(
+    dialog.type === 'dot' ? (dialog.dot?.modelId ?? '') : '',
+  );
+  const [models, setModels] = useState<ModelOption[]>([]);
+  const [defaultModel, setDefaultModel] = useState<string | null>(null);
+  useEffect(() => {
+    if (dialog.type !== 'dot') return;
+    let active = true;
+    void api<{ catalog: ModelOption[]; default: string | null }>('/models')
+      .then((value) => {
+        if (!active) return;
+        setModels(value.catalog);
+        setDefaultModel(value.default);
+      })
+      .catch(() => undefined);
+    return () => {
+      active = false;
+    };
+  }, [dialog.type]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [theme, setTheme] = useState(themePreference);
@@ -164,6 +190,7 @@ export function WorkspaceDialog({
                   .filter(Boolean),
                 learningContainerId: learningContainer.trim() || null,
                 skillDeliveryEnabled: skillDelivery,
+                modelId: modelId || null,
               };
             }
             if (dialog.type === 'settings') {
@@ -346,6 +373,38 @@ export function WorkspaceDialog({
               <p className="muted" id="composio-toolkits-help">
                 Optional comma-separated Composio toolkit slugs. Leave blank to
                 let the Dot search all available toolkits.
+              </p>
+            </fieldset>
+          )}
+          {dialog.type === 'dot' && (
+            <fieldset className="space-access-fields">
+              <legend>Model</legend>
+              <label className="field-label" htmlFor="dot-model">
+                Model for this Dot
+              </label>
+              <select
+                id="dot-model"
+                value={modelId}
+                onChange={(event) => setModelId(event.target.value)}
+              >
+                <option value="">
+                  {defaultModel
+                    ? `Deployment default (${defaultModel})`
+                    : 'Deployment default'}
+                </option>
+                {models.map((model) => (
+                  <option key={model.id} value={model.id}>
+                    {model.label} · {model.provider}
+                  </option>
+                ))}
+                {modelId && !models.some((model) => model.id === modelId) && (
+                  <option value={modelId}>{modelId} (custom)</option>
+                )}
+              </select>
+              <p className="muted">
+                Models run through the configured OpenAI-compatible endpoint.
+                Local entries such as Llama or Qwen are free when you serve them
+                with Ollama or another local runtime.
               </p>
             </fieldset>
           )}

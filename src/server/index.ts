@@ -82,10 +82,29 @@ const runner = new Runner(
         'This legacy task has no Intelligence conversation. Create a new scheduled task from a conversation.',
       );
     progress('Running this task in its Intelligence conversation.');
-    const text = await platform.turn(threadId, claim.prompt, signal, {
-      opendotsSource: 'scheduled_task',
-    });
-    return { text, sources: [], sample: false };
+    const startedAt = Date.now();
+    try {
+      const text = await platform.turn(threadId, claim.prompt, signal, {
+        opendotsSource: 'scheduled_task',
+      });
+      workspace.analytics.record({
+        kind: 'task_run',
+        threadId,
+        refId: claim.id,
+        durationMs: Date.now() - startedAt,
+        ok: true,
+      });
+      return { text, sources: [], sample: false };
+    } catch (error) {
+      workspace.analytics.record({
+        kind: 'task_run',
+        threadId,
+        refId: claim.id,
+        durationMs: Date.now() - startedAt,
+        ok: false,
+      });
+      throw error;
+    }
   },
   config.agentRunTimeoutMs,
 );

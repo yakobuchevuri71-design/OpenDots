@@ -7,6 +7,31 @@ import { api } from './api';
 const stayInSection = (event: KeyboardEvent) => {
   if (event.key === 'Enter') event.preventDefault();
 };
+
+// Starting points for common MCP servers. The URL stays editable, and every
+// preset still needs the owner's own token, so nothing connects by default.
+const PRESETS: { name: string; url: string; hint: string }[] = [
+  {
+    name: 'GitHub',
+    url: 'https://api.githubcopilot.com/mcp/',
+    hint: 'Repositories, issues and pull requests. Needs a GitHub personal access token.',
+  },
+  {
+    name: 'Linear',
+    url: 'https://mcp.linear.app/mcp',
+    hint: 'Task management: issues, projects and cycles. Needs a Linear API key.',
+  },
+  {
+    name: 'Notion',
+    url: 'https://mcp.notion.com/mcp',
+    hint: 'Docs and databases. Authorize through the Notion MCP flow.',
+  },
+  {
+    name: 'Sentry',
+    url: 'https://mcp.sentry.dev/mcp',
+    hint: 'Error monitoring and releases. Needs a Sentry auth token.',
+  },
+];
 export function ConnectionsSection({ dotId }: { dotId: string }) {
   const [connections, setConnections] = useState<Connection[]>();
   const [name, setName] = useState('');
@@ -184,6 +209,26 @@ export function ConnectionsSection({ dotId }: { dotId: string }) {
         <label className="field-label" htmlFor="connection-name">
           Add an MCP server
         </label>
+        <div
+          className="connection-presets"
+          role="group"
+          aria-label="MCP presets"
+        >
+          {PRESETS.map((preset) => (
+            <button
+              key={preset.name}
+              type="button"
+              className="preset-chip"
+              title={preset.hint}
+              onClick={() => {
+                setName(preset.name);
+                setUrl(preset.url);
+              }}
+            >
+              {preset.name}
+            </button>
+          ))}
+        </div>
         <input
           id="connection-name"
           placeholder="Name, e.g. GitHub"
